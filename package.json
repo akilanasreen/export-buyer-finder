@@ -1,0 +1,8 @@
+{
+  "name": "export-buyer-finder",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "start": "node server.js", "test": "node test/smoke.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "pdf-lib": "^1.17.1" }
+}
