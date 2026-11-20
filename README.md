@@ -1,4 +1,5 @@
 # Export Buyer Finder
+Export Business Buyer Finder is an open-source B2B lead generation and global trade intelligence application designed to help exporters, manufacturers, and trading companies find verified international buyers. Built with modern web technologies, this tool streamlines market research, importer discovery, HS code lookup, and B2B outreach so businesses can scale their international exports faster.
 
 Seller enters a product + origin country → ranked destination markets (UN Comtrade) → shipping providers + destination buyer prospects (Google Places + business websites) → two separate PDF/CSV reports.
 
