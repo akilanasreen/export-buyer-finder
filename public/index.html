@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Export Buyer Finder</title>
+<style>
+:root{--bg:#f6f3ec;--card:#fff;--ink:#1d2b26;--mut:#5d6b65;--line:#ddd7c8;--acc:#0f6b4f;--acc2:#e9f3ee;--warn:#8a5a00;--warnbg:#fff4d6;--err:#a12a2a;--errbg:#fde8e8}
+@media(prefers-color-scheme:dark){:root{--bg:#141a17;--card:#1d2621;--ink:#ecf1ee;--mut:#a3b0a9;--line:#33403a;--acc:#4cc59a;--acc2:#1f3a2e;--warn:#f0c36a;--warnbg:#3a2f12;--err:#ff9a9a;--errbg:#3d1d1d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+main{max-width:1000px;margin:auto;padding:14px}h1{font-size:1.5rem;margin:.2em 0}h2{font-size:1.15rem;margin:0 0 .5em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
+label{font-weight:600;display:block;margin:10px 0 4px}input,select,button{font:inherit;padding:11px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);max-width:100%}
+input[type=text],input:not([type]),select{width:100%}button{cursor:pointer;background:var(--acc);color:#fff;border:0;font-weight:600}button.sec{background:var(--acc2);color:var(--acc);border:1px solid var(--acc)}button:disabled{opacity:.5}
+.steps{display:flex;gap:4px;margin:10px 0;padding:0;list-style:none;counter-reset:s}.steps li{flex:1;font-size:.72rem;text-align:center;padding:6px 2px;border-bottom:4px solid var(--line);color:var(--mut)}.steps li.on{border-color:var(--acc);color:var(--ink);font-weight:700}.steps li.done{border-color:var(--acc);color:var(--acc)}
+.hint{color:var(--mut);font-size:.88rem}.banner{padding:10px;border-radius:9px;margin:8px 0;background:var(--warnbg);color:var(--warn)}.err{background:var(--errbg);color:var(--err);padding:10px;border-radius:9px;margin:8px 0}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-size:.78rem;text-transform:uppercase;color:var(--mut)}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.78rem;background:var(--acc2);color:var(--acc);font-weight:600}.pill.doc{background:var(--acc);color:#fff}.pill.pot{background:var(--line);color:var(--mut)}
+.route{font-size:1.3rem;font-weight:700;color:var(--acc)}.grid{display:grid;gap:12px;grid-template-columns:1fr 1fr}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.item{border-top:1px solid var(--line);padding:10px 0}.item h3{margin:0 0 4px;font-size:1rem}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.big{font-size:1.6rem;font-weight:800}a{color:var(--acc)}small{color:var(--mut)}
+details summary{cursor:pointer;color:var(--acc)}.demo{border:2px dashed var(--warn)}
+</style></head><body><main>
+<h1>🌍 Export Buyer Finder</h1><p class="hint">Which countries buy my product? Who can ship it? Which businesses could I contact?</p>
+<ol class="steps" id="steps"><li>1 Product &amp; Origin</li><li>2 Export Markets</li><li>3 Select Destination</li><li>4 Providers &amp; Buyers</li></ol>
+<div id="status"></div>
+
+<section class="card" id="home">
+ <label for="product">What product or service do you want to export?</label>
+ <input id="product" placeholder="e.g. cotton bags, cardamom, web development services" autocomplete="off">
+ <label for="origin">Which country are you exporting from?</label>
+ <input id="origin" list="countries" placeholder="Start typing a country…" autocomplete="off">
+ <div class="row" style="margin-top:12px"><button id="go">Find Export Markets</button>
+  <label style="margin:0;font-weight:400"><input type="checkbox" id="demo"> Demo mode (fictional records, no API keys needed)</label></div>
+ <p class="hint" id="cfg"></p>
+</section>
+<datalist id="countries"></datalist>
+<div id="clarify"></div><div id="markets"></div><div id="results"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ISO='AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI KH CM CA CV CF TD CL CN CO KM CG CD CR CI HR CU CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HK HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MR MU MX FM MD MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG KP MK NO OM PK PW PS PA PG PY PE PH PL PT QA RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA KR SS ES LK SD SR SE CH SY TW TJ TZ TH TL TG TO TT TN TR TM TV UG UA AE GB US UY UZ VU VA VE VN YE ZM ZW'.split(' ');
+const dn=new Intl.DisplayNames(['en'],{type:'region'}),CN=Object.fromEntries(ISO.map(c=>[c,dn.of(c)]));
+$('countries').innerHTML=ISO.map(c=>`<option value="${esc(CN[c])}">`).join('');
+const byName=n=>{n=(n||'').trim().toLowerCase();return ISO.find(c=>CN[c].toLowerCase()===n)};
+let S=JSON.parse(sessionStorage.getItem('ebf')||'{}'); const save=()=>sessionStorage.setItem('ebf',JSON.stringify(S));
+$('product').value=S.product||'';$('origin').value=S.origin?CN[S.origin]:'';$('demo').checked=!!S.demo;
+const step=n=>[...$('steps').children].forEach((l,i)=>l.className=i+1<n?'done':i+1==n?'on':'');
+async function api(p,b){const r=await fetch(p,{method:b?'POST':'GET',headers:{'content-type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json().catch(()=>({error:'Bad response'}));if(!r.ok)throw Object.assign(new Error(j.error||'Request failed'),{code:j.code});return j}
+const errBox=(e,retry)=>`<div class="err"><b>${esc(e.code||'Error')}:</b> ${esc(e.message)} <button class="sec" onclick="${retry}">Retry</button></div>`;
+fetch('/api/config').then(r=>r.json()).then(c=>$('cfg').innerHTML=`Live sources: UN Comtrade ${c.comtrade?'✅':'❌ key missing'} · Google Maps ${c.maps?'✅':'❌ key missing'} · Product-term helper ${c.llm?'✅':'(optional)'}`);
+const fmt=n=>n==null?'—':new Intl.NumberFormat('en',{maximumFractionDigits:0}).format(n);
+const demoBanner=()=>S.demo?'<div class="banner demo"><b>DEMO MODE:</b> every company, contact and trade value below is fictional.</div>':'';
+
+async function start(forceService,hs,lbl){
+  S.product=$('product').value.trim();S.origin=byName($('origin').value);S.demo=$('demo').checked;S.dest=null;
+  if(!S.product||!S.origin){$('status').innerHTML='<div class="err">Please enter a product and choose your country from the list.</div>';return}
+  $('status').innerHTML='';$('clarify').innerHTML='';$('results').innerHTML='';$('markets').innerHTML='';save();step(2);
+  if(hs){S.hs=hs;S.label=lbl;S.note=null;save();return loadMarkets()}
+  $('markets').innerHTML='<div class="card">Matching your product to a trade category…</div>';
+  try{const c=await api('/api/classify',{product:S.product,forceService,hs,demo:S.demo});
+    if(c.type==='service')return serviceFlow(c);
+    if(!c.ok){step(1);$('markets').innerHTML='';$('clarify').innerHTML=`<div class="card"><h2>${esc(c.question)}</h2>${c.matches.map(m=>`<p><button class="sec" onclick="start(false,'${m.c}','${esc(m.l).replace(/'/g,'')}')">${esc(m.l)}</button><br><small>${esc(m.note||'')}</small></p>`).join('')}<button class="sec" onclick="start(true)">It’s a service, not a physical product</button></div>`;return}
+    S.hs=c.matches[0].c;S.label=c.matches[0].l;S.note=c.matches[0].note;save();loadMarkets()}
+  catch(e){step(1);$('markets').innerHTML=errBox(e,'start()')}}
+$('go').onclick=()=>start();window.start=start;
+async function loadMarkets(){step(2);$('markets').innerHTML='<div class="card">Searching trade data for destination countries…</div>';
+  try{const m=await api('/api/markets',{origin:S.origin,hs:S.hs,label:S.label,note:S.note,demo:S.demo});S.m=m;step(3);renderMarkets(m)}catch(e){$('markets').innerHTML=errBox(e,'loadMarkets()')}}
+function renderMarkets(m){$('markets').innerHTML=`<div class="card ${S.demo?'demo':''}">${demoBanner()}<h2>Countries buying from ${esc(CN[S.origin])}</h2>
+ <div class="row"><span class="big">${m.year}</span><span class="hint">latest year available · all countries compared for the same year · source: ${esc(m.source)}</span></div>
+ <p><b>Category matched:</b> ${esc(m.category)}</p>${m.note?`<div class="banner">${esc(m.note)}</div>`:''}
+ <div class="tbl"><table><tr><th>#</th><th>Destination</th><th>Annual export value</th><th>Currency</th><th>Year</th><th>Source</th><th></th></tr>
+ ${m.rows.map(r=>`<tr><td>${r.rank}</td><td>${esc(r.name)}</td><td>${r.status==='reported_zero'?'<b>0</b> <small>(reported zero)</small>':r.status==='unavailable'?'<small>Data unavailable</small>':fmt(r.value)}</td><td>${r.currency}</td><td>${r.year}</td><td>${esc(r.source)}</td><td><button onclick="pick('${r.iso2}')">Select destination</button></td></tr>`).join('')}</table></div>
+ <p class="hint">Countries not listed did not report trade for this category — that is missing data, not zero. Country totals show market demand only; they do not show which companies buy.</p>${pickerHtml()}</div>`}
+const pickerHtml=()=>`<h2>Which country do you want to export to?</h2><div class="row"><input id="dest" list="countries" placeholder="Search any country…" style="flex:1;min-width:200px"><button onclick="pick(byName($('dest').value))">Select destination</button></div>`;
+function serviceFlow(c){S.hs=null;save();step(3);$('markets').innerHTML=`<div class="card">${demoBanner()}<h2>Service export: ${esc(S.product)}</h2><p><b>Category:</b> ${esc(c.service)}</p><div class="banner">${esc(c.coverage)}</div>${pickerHtml()}<p class="hint">Freight is skipped for digital services. <a href="#" onclick="start(false);return false">Actually a physical product?</a></p></div>`}
+window.pick=iso=>{if(!iso){alert('Please choose a country from the list.');return}S.dest=iso;S.pickup=S.pickup||'';save();showResults()};
+const isService=()=>!S.hs;
+function showResults(){step(4);const D=CN[S.dest];S.sel={};
+ $('results').innerHTML=`<div class="card ${S.demo?'demo':''}">${demoBanner()}<div class="route">${esc(CN[S.origin])} → ${esc(D)}</div><p class="hint">${esc(S.product)}</p>
+  <label for="chg" style="margin-top:0">Change destination (everything refreshes)</label><div class="row"><input id="chg" list="countries" value="${esc(D)}" style="flex:1;min-width:200px"><button class="sec" onclick="pick(byName($('chg').value))">Update</button></div></div>
+ <div class="grid"><div class="card" id="rp"><h2>Shipping Provider Report</h2><p class="hint" id="rpn"></p><div class="row"><button disabled id="rp-pdf" onclick="dl('providers','pdf')">PDF</button><button class="sec" disabled id="rp-csv" onclick="dl('providers','csv')">CSV</button></div></div>
+ <div class="card" id="rb"><h2>Buyer &amp; Importer Contact Report</h2><p class="hint" id="rbn">Waiting for buyers…</p>
+  <label style="font-weight:400;margin:0"><input type="radio" name="scope" value="all" checked onchange="cnt()"> All eligible results</label><label style="font-weight:400;margin:0"><input type="radio" name="scope" value="sel" onchange="cnt()"> Only selected businesses</label>
+  <div class="row" style="margin-top:8px"><button disabled id="rb-pdf" onclick="dl('buyers','pdf')">PDF</button><button class="sec" disabled id="rb-csv" onclick="dl('buyers','csv')">CSV</button></div></div></div>
+ <div class="grid"><div class="card" id="prov"></div><div class="card" id="buy"></div></div>
+ <p class="hint">Map data and listings: Powered by Google Maps Platform. Downloads contain only fields from business websites or other exportable sources.</p>`;
+ P=null;B=null;loadProviders();loadBuyers();$('results').scrollIntoView({behavior:'smooth'})}
+let P=null,B=null,run=0;
+async function loadProviders(){const my=++run;const el=$('prov');
+ if(isService()){el.innerHTML='<h2>Shipping providers</h2><p>Skipped: digital services are not freight-shipped. Use the buyer discovery panel.</p>';$('rpn').textContent='Not applicable for services.';return}
+ el.innerHTML=`<h2>Shipping providers</h2><label for="pk" style="margin-top:0">Pickup city or port (optional)</label><div class="row"><input id="pk" value="${esc(S.pickup||'')}" placeholder="e.g. Kochi" style="flex:1"><button class="sec" onclick="S.pickup=$('pk').value.trim();save();loadProviders()">Narrow</button></div><p id="pst">Searching providers…</p><div id="pl"></div>`;
+ try{const r=await api('/api/providers',{product:S.product,origin:S.origin,dest:S.dest,pickup:S.pickup,demo:S.demo});if(S.dest!==r.dest&&0)return;P=r.providers;
+  $('pst').textContent=P.length?`${P.length} providers found`:'';$('pl').innerHTML=P.length?P.map(p=>`<div class="item"><h3>${esc(p.disp.name)}</h3><div>${p.services.map(s=>`<span class="pill">${esc(s)}</span>`).join(' ')}</div>
+  <div>📍 ${esc(p.disp.address||'Not publicly listed')}<br>📞 ${esc(p.disp.phone||'Not publicly listed')} · ✉️ ${esc(p.disp.email||'Not publicly listed')}</div>
+  <div>${p.disp.website?`<a href="${esc(p.disp.website)}" target="_blank" rel="noopener">Website</a>`:''} ${p.quote?`· <a href="${esc(p.quote)}" target="_blank" rel="noopener">Request a quote</a>`:''} ${p.disp.mapsUri?`· <a href="${esc(p.disp.mapsUri)}" target="_blank" rel="noopener">Google Maps</a>`:''}</div>
+  <div><b>Route:</b> ${p.coverage.url?`<span class="pill doc">${esc(p.coverage.text)}</span><br><small>${esc(p.coverage.snippet)} <a href="${esc(p.coverage.url)}" target="_blank" rel="noopener">source</a></small>`:`<span class="pill pot">${esc(p.coverage.text)}</span>`}</div>
+  ${p.cold?`<div><b>Chilled / cold chain:</b> ${esc(p.cold)}</div>`:''}<small>Checked ${p.exp.checked}</small></div>`).join(''):'<div class="banner">No providers found. Try a nearby pickup city or press Narrow with it blank.</div>';
+  $('rpn').textContent=`${P.length} providers included`;[...['rp-pdf','rp-csv']].forEach(i=>$(i).disabled=!P.length)}
+ catch(e){$('prov').querySelector('#pst').outerHTML=errBox(e,'loadProviders()')}}
+async function loadBuyers(){const el=$('buy');el.innerHTML='<h2>Buyer prospects</h2><p id="bst">Searching importers and distributors in cities across the destination…</p><div id="bf"></div><div id="bl"></div>';
+ try{const r=await api('/api/buyers',{product:S.product,origin:S.origin,dest:S.dest,demo:S.demo});B=r.businesses;S.sel={};
+  if(!B.length){$('bst').outerHTML='<div class="banner">No businesses found for these searches. Try a different destination or a broader product name. <button class="sec" onclick="loadBuyers()">Retry</button></div>';$('rbn').textContent='0 businesses';return}
+  const cities=[...new Set(B.map(b=>b.disp.city).filter(Boolean))],cls=[...new Set(B.map(b=>b.cls))];
+  $('bst').innerHTML=`Search terms: ${r.terms.base.concat(r.terms.local).map(esc).join(', ')}`;
+  $('bf').innerHTML=`<div class="row"><select id="fc" onchange="filt()"><option value="">All cities</option>${cities.map(c=>`<option>${esc(c)}</option>`).join('')}</select><select id="fk" onchange="filt()"><option value="">All classifications</option>${cls.map(c=>`<option>${esc(c)}</option>`).join('')}</select><select id="ft" onchange="filt()"><option value="">All business types</option>${[...new Set(B.map(b=>b.disp.type).filter(Boolean))].map(c=>`<option>${esc(c)}</option>`).join('')}</select></div>`;filt()}
+ catch(e){$('bst').outerHTML=errBox(e,'loadBuyers()')}}
+const vis=()=>{const c=$('fc')?.value,k=$('fk')?.value,t=$('ft')?.value;return B.filter(b=>(!c||b.disp.city===c)&&(!k||b.cls===k)&&(!t||b.disp.type===t))};
+window.filt=()=>{const v=vis();$('bl').innerHTML=v.map(b=>{const d=b.disp,pc=b.cls.startsWith('Documented')?'doc':b.cls==='Product importer'?'':'pot';return`<div class="item"><label style="display:flex;gap:8px;margin:0"><input type="checkbox" ${S.sel[b.id]?'checked':''} onchange="S.sel['${b.id}']=this.checked;cnt()"><span><h3 style="display:inline">${esc(d.name)}</h3></span></label>
+ <div><span class="pill ${pc}">${esc(b.cls)}</span> <small>${esc(d.type)} · ${esc(d.city)}</small></div><div>📍 ${esc(d.address)}<br>📞 ${esc(d.phone||'Not publicly listed')} · ✉️ ${esc(d.email||'Not publicly listed')}</div>
+ <div>${d.website?`<a href="${esc(d.website)}" target="_blank" rel="noopener">Website</a>`:''}${d.contactUrl?` · <a href="${esc(d.contactUrl)}" target="_blank" rel="noopener">Contact page</a>`:''}${d.mapsUri?` · <a href="${esc(d.mapsUri)}" target="_blank" rel="noopener">Google Maps</a>`:''}</div>
+ <small>${esc(b.why)}</small>${b.evidence.url?`<details><summary>Evidence</summary><small>${esc(b.evidence.snippet)}<br><a href="${esc(b.evidence.url)}" target="_blank" rel="noopener">${esc(b.evidence.url)}</a></small></details>`:'<br><small>No documented evidence: Maps listing only.</small>'}</div>`}).join('')||'<p>No results match these filters.</p>';cnt()};
+const eligible=()=>document.querySelector('[name=scope]:checked')?.value==='sel'?vis().filter(b=>S.sel[b.id]):B||[];
+window.cnt=()=>{if(!B)return;const n=eligible().length;$('rbn').textContent=`${n} business${n==1?'':'es'} will be included`;['rb-pdf','rb-csv'].forEach(i=>$(i).disabled=!n)};
+window.dl=async(kind,fmt)=>{const rows=(kind==='providers'?P:eligible()).map(x=>({...x,disp:undefined}));
+ try{const r=await fetch(`/api/report/${kind}?format=${fmt}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({rows,meta:{product:S.product,origin:CN[S.origin],destination:CN[S.dest],demo:S.demo}})});
+  if(!r.ok)throw new Error((await r.json()).error);const a=document.createElement('a');a.href=URL.createObjectURL(await r.blob());a.download=(r.headers.get('content-disposition')||'').match(/filename="(.+)"/)?.[1]||'report.'+fmt;a.click()}catch(e){$('status').innerHTML=`<div class="err">Download failed: ${esc(e.message)}</div>`}};
+</script></body></html>
