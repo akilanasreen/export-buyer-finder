@@ -39,3 +39,12 @@ Keys live only in `.env` on the server.
 * Services: no live bilateral services-trade source is wired in; the app labels this and asks for a manual destination.
 * HS matching uses a built-in table for common goods, then Comtrade's HS list; ambiguous goods trigger a clarifying question.
 * Cardamom is matched at HS heading 0908 (nutmeg, mace, cardamoms) because the 6-digit code changed in HS 2022; the broader category is shown.
+
+
+## 👨‍💻 Built By
+
+Created and maintained by Akila Nasreen — check out more projects, case studies, and services on my portfolio:
+👉 https://itladder.org/portfolio
+
+*Need a custom B2B lead generation tool, web application, or automation pipeline for your business? Visit my portfolio to get in touch.*
+
